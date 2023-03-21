@@ -12,16 +12,41 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <netinet/tcp.h>
 
 #define MAX_LINE_LEN 4096
 
-//creates a file called index.html. and writes the response of the get request to the supplied ip.
-//void to_file(char** response){
-//    //open file
-//    //write contents
-//    //make sure it ends with </body></html>, as this is what they check
-//}
-//
+//returns the rtt in microseconds
+uint32_t socketResponse2File(FILE *fp, int sd, char response_buffer[], size_t line_len) {
+    struct tcp_info info;
+    socklen_t tcp_info_length = sizeof info;
+    if (fp == NULL) {
+        printf("Error opening file\n");
+        exit(1);
+    }
+
+    if (write(sd, response_buffer, line_len) != line_len) {
+        puts("write to socket did not complete");
+        exit(1);
+    }
+    int ret = getsockopt(sd, SOL_TCP, TCP_INFO, &info, &tcp_info_length);
+
+    ssize_t n;
+    memset(response_buffer, 0, MAX_LINE_LEN);
+    puts("Writing response to file \"index.html\"");
+    while ((n = read(sd, response_buffer, MAX_LINE_LEN - 1)) > 0) {
+        fprintf(fp, "%s", response_buffer);
+        memset(response_buffer, 0, MAX_LINE_LEN);
+    }
+    fclose(fp);
+    if (n < 0) {
+        puts("socket read error");
+        exit(1);
+    }
+    close(sd);
+    return info.tcpi_rtt;
+}
+
 void domain2ip(char *domain, char *port, char ip_string[]) {
     struct addrinfo hints, *results, *temp;
     int status;
@@ -72,10 +97,10 @@ int main(int argc, char *argv[]) {
     }
 
     char ip_string[INET_ADDRSTRLEN];
+    int socket_descriptor;
 
     domain2ip(website_name, connection_port, ip_string);
 
-    int socket_descriptor;
     if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         puts("socket call error");
         return 3;
@@ -107,31 +132,12 @@ int main(int argc, char *argv[]) {
     char receive_line[MAX_LINE_LEN];
     sprintf(send_line, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", website_name);
     send_line_len = strlen(send_line);
+    FILE *output_file;
+    output_file = fopen("index.html","w");
 
-    time_t timer = clock();
-    if (write(socket_descriptor, send_line, send_line_len) != send_line_len) {
-        puts("write did not complete");
-        return 6;
-    }
-
-    //receive from socket
-    memset(receive_line, 0, MAX_LINE_LEN);
-
-    ssize_t n;
-    //freezing on google, https://www.ibm.com/docs/en/zos/2.1.0?topic=functions-read-read-from-file-socket
-    while ((n = read(socket_descriptor, receive_line, MAX_LINE_LEN - 1)) > 0) {
-        printf("%s", receive_line);
-        memset(receive_line, 0, MAX_LINE_LEN);
-    }
-    if (n < 0) {
-        puts("socket read error");
-        return 7;
-    }
-
+    printf("Contacting %s...\n", website_name);
     if(will_time){
-        printf("RTT is %l\n", clock() - timer);
+        printf("\nRTT is %u milliseconds\n", socketResponse2File(output_file, socket_descriptor, send_line, send_line_len)/1000);
     }
-    close(socket_descriptor);
-    exit(0);
-    //TODO gettimeofday() for rtt
+    return 0;
 }
