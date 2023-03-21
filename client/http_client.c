@@ -99,9 +99,9 @@ int main(int argc, char *argv[]) {
 
 //    write to socket
     char send_line[MAX_LINE_LEN];
-    size_t send_line_len = 0;
+    size_t send_line_len;
     char receive_line[MAX_LINE_LEN];
-    sprintf(send_line, "GET /index.html HTTP/1.1\r\nHost: google.com\r\n\r\n");
+    sprintf(send_line, "GET / HTTP/1.1\r\nHost: %s\r\n\r\n", website_name);
     send_line_len = strlen(send_line);
 
     if (write(socket_descriptor, send_line, send_line_len) != send_line_len) {
@@ -113,11 +113,11 @@ int main(int argc, char *argv[]) {
     memset(receive_line, 0, MAX_LINE_LEN);
 
     ssize_t n;
+    //freezing on google, https://www.ibm.com/docs/en/zos/2.1.0?topic=functions-read-read-from-file-socket
     while ((n = read(socket_descriptor, receive_line, MAX_LINE_LEN - 1)) > 0) {
         printf("%s", receive_line);
         memset(receive_line, 0, MAX_LINE_LEN);
     }
-    int temp = 0;
     if (n < 0) {
         puts("socket read error");
         return 7;
