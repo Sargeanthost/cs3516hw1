@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #define MAX_LINE_LEN 4096
 
@@ -54,6 +55,9 @@ int main(int argc, char *argv[]) {
     char *website_name;
     char *connection_port;
     short will_time = 0;
+    //if website_name matchs:
+    // /^(?=.*[^\.]$)((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.?){4}$/
+    //then you have ip address
 //   ./http_client -temp google.com 80
     if (argc == 3) {
         website_name = argv[1];
@@ -101,9 +105,10 @@ int main(int argc, char *argv[]) {
     char send_line[MAX_LINE_LEN];
     size_t send_line_len;
     char receive_line[MAX_LINE_LEN];
-    sprintf(send_line, "GET / HTTP/1.1\r\nHost: %s\r\n\r\n", website_name);
+    sprintf(send_line, "GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", website_name);
     send_line_len = strlen(send_line);
 
+    time_t timer = clock();
     if (write(socket_descriptor, send_line, send_line_len) != send_line_len) {
         puts("write did not complete");
         return 6;
@@ -123,6 +128,9 @@ int main(int argc, char *argv[]) {
         return 7;
     }
 
+    if(will_time){
+        printf("RTT is %l\n", clock() - timer);
+    }
     close(socket_descriptor);
     exit(0);
     //TODO gettimeofday() for rtt
