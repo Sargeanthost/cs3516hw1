@@ -1,6 +1,7 @@
 /*
 ** showip.c -- show IP addresses for a host given on the command line
 */
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <string.h>
@@ -19,13 +20,14 @@
 //Writes a request to the given socket, saves the response to a file, and returns the rtt in microseconds
 uint32_t socketResponse2File(FILE *fp, int sd, char response_buffer[], size_t line_len) {
     struct tcp_info info;
-    socklen_t tcp_info_length = sizeof info;
+    socklen_t tcp_info_length = sizeof(info);
     if (fp == NULL) {
         printf("Error opening file\n");
         exit(1);
     }
 
-    if (write(sd, response_buffer, line_len) != line_len) {
+    //we dont care about -1 returning, just that the recieved and sent are different
+    if ((size_t) write(sd, response_buffer, line_len) != line_len) {
         puts("write to socket did not complete. Please rerun the program");
         exit(1);
     }
@@ -161,7 +163,6 @@ int main(int argc, char *argv[]) {
 //    write to socket
     char send_line[MAX_LINE_LEN];
     size_t send_line_len;
-    char receive_line[MAX_LINE_LEN];
     sprintf(send_line, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", url_path, url_domain);
     send_line_len = strlen(send_line);
     FILE *output_file;

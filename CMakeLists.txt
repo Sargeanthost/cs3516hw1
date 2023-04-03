@@ -3,4 +3,4 @@ project(proj1 C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(proj1 client/http_client.c)
+add_executable(proj1 client/http_client.c server/http_server.c)
