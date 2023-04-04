@@ -44,7 +44,7 @@ Supports both IP and domain name lookup. Many sites have redirects and other wei
 straight IP for some reason, I know my website does this too. But, 52.5.170.204 for komkon.org works well with my program
 and can download through IP or domain.
 
-Makefiles:
+Makefile:
 All that's required when building is a linux machine and the gcc compiler. If you dont have gcc switch out gcc in the
 makefiles for your computer's compiler.
 
