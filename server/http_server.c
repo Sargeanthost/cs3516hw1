@@ -36,7 +36,7 @@ void handle_request(int client_sock, char *request_buffer, char *root_dir) {
     struct stat file_stat;
     fstat(fd, &file_stat);
 
-    //num bytes
+    // Num bytes of file
     __off_t size = file_stat.st_size;
 
     // Send the contents of the file to the client
@@ -47,7 +47,7 @@ void handle_request(int client_sock, char *request_buffer, char *root_dir) {
         write(client_sock, buffer, bytes_read);
     }
 
-    // Close the file and the socket
+    // Close the file and the socket. This ends the connection and the client wont hang.
     close(fd);
     close(client_sock);
 }
@@ -60,15 +60,12 @@ int main(int argc, char *argv[]) {
     }
     int port = atoi(argv[1]);
 
-    // Get the current working directory to host on the port
+    // Get the current working directory to host on the port for the socket
     char root_dir[BUFFER_SIZE];
     if (getcwd(root_dir, BUFFER_SIZE-2) == NULL) {
         perror("getcwd");
         exit(EXIT_FAILURE);
     }
-
-//    strcat(root_dir, "/");
-//    printf("Hosting files on %s\n", root_dir);
 
     int server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock == -1) {
@@ -110,15 +107,9 @@ int main(int argc, char *argv[]) {
             close(client_sock);
             continue;
         } else {
-            printf("Request recieved is: %s\n", request_buffer);
+            printf("Request received is: %s\n", request_buffer);
         }
 
-        // Handle the HTTP request
         handle_request(client_sock, request_buffer, root_dir);
     }
-
-// Close the server socket
-    close(server_sock);
-
-    return 0;
 }

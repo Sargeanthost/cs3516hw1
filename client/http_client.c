@@ -84,11 +84,16 @@ void domain2ip(char *domain, char *port, char ip_string[]) {
 }
 
 //split string in half base on delimiter. delimiter stays with second half
-void split(char *str, char *delimiter, char **first, char **second){
-    char *token = strtok(str, delimiter);
-    *first = token;
-    token = strtok(NULL, delimiter);
-    *second = token;
+void split(char *input, char delimiter, char **first, char **second){
+    char* delimiter_pos = strchr(input, delimiter);
+    if (delimiter_pos == NULL) {
+        *first = strdup(input);
+        *second = NULL;
+    } else {
+        size_t delimiter_index = delimiter_pos - input;
+        *first = strndup(input, delimiter_index);
+        *second = strdup(input + delimiter_index);
+    }
 }
 
 int is_ip_address(const char *domain) {
@@ -122,7 +127,9 @@ int main(int argc, char *argv[]) {
     url = argv[MAX_ARGS - (MAX_ARGS - argc) - 2];
     port = argv[MAX_ARGS - (MAX_ARGS - argc) - 1];
 
-    split(url, "/", &url_domain, &url_path);
+    char temp_url[strlen(url)];
+    strcpy(temp_url, url);
+    split(temp_url, '/', &url_domain, &url_path);
     url_path = (url_path == NULL) ? "/" : url_path;
 
     char ip_string[INET_ADDRSTRLEN];
@@ -133,7 +140,6 @@ int main(int argc, char *argv[]) {
         domain2ip(url_domain, port, ip_string);
     }
     int socket_descriptor;
-
 
     if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
         puts("socket call error");
