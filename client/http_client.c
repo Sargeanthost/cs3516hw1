@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
     FILE *output_file;
     output_file = fopen("index.html", "w");
 
-    printf("GETTING contents from %s...\n", strcat(url_domain, url_path));
+    printf("GETTING contents from %s...\n", url_domain);
     if (will_time) {
         printf("\nRTT is %u milliseconds\n",
                socketResponse2File(output_file, socket_descriptor, send_line, send_line_len) / 1000);

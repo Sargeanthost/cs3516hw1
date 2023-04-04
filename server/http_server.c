@@ -1,48 +1,4 @@
-//#include <signal.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <unistd.h>
-//#include <sys/socket.h>
-//
-//int sd;
-//
-//void sigterm_handler(int signum) {
-//    printf("Received SIGTERM signal\n");
-//
-//    // Close any open sockets
-//    if (sd != -1) {
-//        close(sd);
-//        sd = -1;
-//    }
-//
-//    // Perform any other necessary cleanup here
-//
-//    // Exit the program
-//    exit(EXIT_SUCCESS);
-//}
-//
-//int main() {
-//    // Register the signal handler function for SIGTERM
-//    signal(SIGTERM, sigterm_handler);
-//
-//    // Open a socket (just an example)
-//    sd = socket(AF_INET, SOCK_STREAM, 0);
-//    if (sd == -1) {
-//        perror("socket");
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    // Do some other work here
-//
-//    // Wait for the SIGTERM signal
-//    while (1) {
-//        sleep(1);
-//    }
-//
-//    return 0;
-//}
-
-//================================================
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -50,14 +6,15 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
 
-#define _GNU_SOURCE
 #define BUFFER_SIZE 1024
 
 void handle_request(int client_sock, char *request_buffer, char *root_dir) {
-    // Parse the HTTP request
+    // Parse the HTTP request. will have "/" by default. However, for the homework this will be "/TMDG.html"
     char method[BUFFER_SIZE], path[BUFFER_SIZE], protocol[BUFFER_SIZE];
-    //GET / HTTP/1.1
+    //GET /TMDG.html HTTP/1.1
     sscanf(request_buffer, "%s %s %s", method, path, protocol);
 
     if (strcasecmp(method, "GET") != 0) {
@@ -65,9 +22,10 @@ void handle_request(int client_sock, char *request_buffer, char *root_dir) {
         return;
     }
 
-    // Build the path to the requested file. Root dir should be followed by an os file separate
+    // Build the path to the requested file.
     char full_path[BUFFER_SIZE];
     sprintf(full_path, "%s%s", root_dir, path);
+    printf("Requested file is: %s\n", full_path);
 
     // Try to open the requested file
     int fd = open(full_path, O_RDONLY);
@@ -75,9 +33,14 @@ void handle_request(int client_sock, char *request_buffer, char *root_dir) {
         dprintf(client_sock, "HTTP/1.1 404 Not Found\r\n\r\n");
         return;
     }
+    struct stat file_stat;
+    fstat(fd, &file_stat);
+
+    //num bytes
+    __off_t size = file_stat.st_size;
 
     // Send the contents of the file to the client
-    dprintf(client_sock, "HTTP/1.1 200 OK\r\n\r\n");
+    dprintf(client_sock, "HTTP/1.1 200 OK\r\nContent-length: %ld\r\n\r\n",size);
     char buffer[BUFFER_SIZE];
     ssize_t bytes_read;
     while ((bytes_read = read(fd, buffer, BUFFER_SIZE)) > 0) {
@@ -99,10 +62,13 @@ int main(int argc, char *argv[]) {
 
     // Get the current working directory to host on the port
     char root_dir[BUFFER_SIZE];
-    if (getcwd(root_dir, BUFFER_SIZE) == NULL) {
+    if (getcwd(root_dir, BUFFER_SIZE-2) == NULL) {
         perror("getcwd");
         exit(EXIT_FAILURE);
     }
+
+//    strcat(root_dir, "/");
+//    printf("Hosting files on %s\n", root_dir);
 
     int server_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (server_sock == -1) {
@@ -127,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     // Accept and handle incoming connections
     while (1) {
-        //handle sigterm
+        //sigterm handles the closing of sockets automatically
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         int client_sock = accept(server_sock, (struct sockaddr *) &client_addr, &client_addr_len);
@@ -143,6 +109,8 @@ int main(int argc, char *argv[]) {
             perror("read");
             close(client_sock);
             continue;
+        } else {
+            printf("Request recieved is: %s\n", request_buffer);
         }
 
         // Handle the HTTP request
