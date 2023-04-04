@@ -1,6 +1,3 @@
-/*
-** showip.c -- show IP addresses for a host given on the command line
-*/
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -17,7 +14,7 @@
 #define MAX_LINE_LEN 4096
 #define MAX_ARGS 4
 
-//Writes a request to the given socket, saves the response to a file, and returns the rtt in microseconds
+//Writes a request to the given socket, saves the response to a file and prints, and returns the rtt in microseconds
 uint32_t socketResponse2File(FILE *fp, int sd, char response_buffer[], size_t line_len) {
     struct tcp_info info;
     socklen_t tcp_info_length = sizeof(info);
@@ -26,7 +23,7 @@ uint32_t socketResponse2File(FILE *fp, int sd, char response_buffer[], size_t li
         exit(1);
     }
 
-    //we dont care about -1 returning, just that the recieved and sent are different
+    //we dont care about -1 returning, just that the received and sent are different
     if ((size_t) write(sd, response_buffer, line_len) != line_len) {
         puts("write to socket did not complete. Please rerun the program");
         exit(1);
@@ -40,6 +37,7 @@ uint32_t socketResponse2File(FILE *fp, int sd, char response_buffer[], size_t li
     memset(response_buffer, 0, MAX_LINE_LEN);
     puts("Writing response to file \"index.html\"");
     while ((n = read(sd, response_buffer, MAX_LINE_LEN - 1)) > 0) {
+        printf("%s", response_buffer);
         fprintf(fp, "%s", response_buffer);
         memset(response_buffer, 0, MAX_LINE_LEN);
     }
@@ -127,6 +125,7 @@ int main(int argc, char *argv[]) {
     url = argv[MAX_ARGS - (MAX_ARGS - argc) - 2];
     port = argv[MAX_ARGS - (MAX_ARGS - argc) - 1];
 
+    //char* is const?
     char temp_url[strlen(url)];
     strcpy(temp_url, url);
     split(temp_url, '/', &url_domain, &url_path);
